@@ -1,0 +1,102 @@
+[tool.poetry]
+name = "auth-backend"
+version = "0.1.0"
+description = "OAuth2 Authentication Backend Service"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.104.1"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+sqlalchemy = "^2.0.23"
+alembic = "^1.12.1"
+asyncpg = "^0.29.0"
+pydantic = {extras = ["email"], version = "^2.5.0"}
+pydantic-settings = "^2.0.3"
+passlib = {extras = ["argon2"], version = "^1.7.4"}
+argon2-cffi = "^23.1.0"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+python-multipart = "^0.0.6"
+httpx = "^0.25.2"
+jinja2 = "^3.1.2"
+python-dotenv = "^1.0.0"
+structlog = "^23.2.0"
+slowapi = "^0.1.9"
+authlib = "^1.2.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.12.0"
+black = "^23.11.0"
+isort = "^5.12.0"
+mypy = "^1.7.1"
+flake8 = "^6.1.0"
+httpx = "^0.25.2"
+factory-boy = "^3.3.0"
+freezegun = "^1.2.2"
+responses = "^0.24.1"
+types-requests = "^2.31.0.10"
+ipdb = "^0.13.13"
+rich = "^13.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "e2e: marks tests as end-to-end tests (deselect with '-m \"not e2e\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "database: marks tests that require database access",
+    "auth: marks tests related to authentication",
+    "roles: marks tests related to role management",
+    "service_accounts: marks tests related to service account management",
+]
+asyncio_mode = "auto"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=90",
+    "-p no:warnings",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]

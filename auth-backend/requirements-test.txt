@@ -1,0 +1,32 @@
+# Testing dependencies for the auth-backend service
+# This file contains all packages needed for comprehensive unit and integration testing
+
+# Core testing framework
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+
+# Async testing support
+anyio==4.0.0
+
+# Database testing utilities
+sqlalchemy[asyncio]==2.0.23
+asyncpg==0.29.0
+
+# HTTP testing
+httpx==0.25.2
+requests==2.31.0
+
+# Mock and testing utilities
+factory-boy==3.3.0
+freezegun==1.2.2
+responses==0.24.1
+
+# Type checking for tests
+mypy==1.7.1
+types-requests==2.31.0.10
+
+# Development and debugging
+ipdb==0.13.13
+rich==13.7.0

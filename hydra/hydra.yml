@@ -1,0 +1,45 @@
+version: v1.11.10
+
+dsn: postgres://hydra_user:HYDRA_PASSWORD_PLACEHOLDER@postgres-hydra:5432/hydra_db?sslmode=disable&max_conns=20&max_idle_conns=4
+
+serve:
+  cookies:
+    same_site_mode: Lax
+  admin:
+    host: 0.0.0.0
+    port: 4445
+  public:
+    host: 0.0.0.0
+    port: 4444
+
+urls:
+  self:
+    issuer: http://localhost:4444/
+  consent: http://auth-backend:8000/consent
+  login: http://auth-backend:8000/login
+  logout: http://auth-backend:8000/logout
+
+secrets:
+  system:
+    - youReallyNeedToChangeThis
+
+oidc:
+  subject_identifiers:
+    supported_types:
+      - pairwise
+      - public
+    pairwise:
+      salt: youReallyNeedToChangeThis
+
+oauth2:
+  expose_internal_errors: true
+  
+ttl:
+  access_token: 15m
+  refresh_token: 720h # 30 days
+  id_token: 1h
+  auth_code: 10m
+
+log:
+  level: debug
+  format: json

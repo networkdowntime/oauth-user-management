@@ -1,0 +1,159 @@
+services:
+  # Init service to generate SQL files from templates
+  init-db-scripts:
+    image: alpine:latest
+    container_name: init-db-scripts
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: >
+      sh -c "
+        apk add --no-cache gettext &&
+        echo 'Generating database init files...' &&
+        sh scripts/generate-db-init.sh &&
+        echo 'Database init files generated successfully!'
+      "
+    environment:
+      - POSTGRES_HYDRA_DB=${POSTGRES_HYDRA_DB}
+      - POSTGRES_HYDRA_USER=${POSTGRES_HYDRA_USER}
+      - POSTGRES_HYDRA_PASSWORD=${POSTGRES_HYDRA_PASSWORD}
+      - POSTGRES_AUTH_DB=${POSTGRES_AUTH_DB}
+      - POSTGRES_AUTH_USER=${POSTGRES_AUTH_USER}
+      - POSTGRES_AUTH_PASSWORD=${POSTGRES_AUTH_PASSWORD}
+  # PostgreSQL for Ory Hydra
+  postgres-hydra:
+    image: postgres:17
+    container_name: postgres-hydra
+    environment:
+      POSTGRES_DB: ${POSTGRES_HYDRA_DB}
+      POSTGRES_USER: ${POSTGRES_HYDRA_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_HYDRA_ADMIN_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - hydra-db-data:/var/lib/postgresql/data
+      - ./database/hydra/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - oauth-network
+    depends_on:
+      init-db-scripts:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_HYDRA_ADMIN_USER} -d ${POSTGRES_HYDRA_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL for Auth Backend
+  postgres-auth:
+    image: postgres:17
+    container_name: postgres-auth
+    environment:
+      POSTGRES_DB: ${POSTGRES_AUTH_DB}
+      POSTGRES_USER: ${POSTGRES_AUTH_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_ADMIN_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+      - ./database/auth/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - oauth-network
+    depends_on:
+      init-db-scripts:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AUTH_ADMIN_USER} -d ${POSTGRES_AUTH_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Ory Hydra OAuth2 Server
+  hydra-migrate:
+    image: oryd/hydra:v2.2.0
+    environment:
+      DSN: postgres://${POSTGRES_HYDRA_USER}:${POSTGRES_HYDRA_PASSWORD}@postgres-hydra:5432/${POSTGRES_HYDRA_DB}?sslmode=disable&max_conns=20&max_idle_conns=4
+    command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
+    volumes:
+      - ./hydra/hydra.yml:/etc/config/hydra/hydra.yml
+    networks:
+      - oauth-network
+    depends_on:
+      postgres-hydra:
+        condition: service_healthy
+
+  hydra:
+    image: oryd/hydra:v2.2.0
+    container_name: hydra
+    ports:
+      - "4444:4444" # Public port
+      - "4445:4445" # Admin port
+    command: serve -c /etc/config/hydra/hydra.yml all --dev
+    volumes:
+      - ./hydra/hydra.yml:/etc/config/hydra/hydra.yml
+    environment:
+      DSN: postgres://${POSTGRES_HYDRA_USER}:${POSTGRES_HYDRA_PASSWORD}@postgres-hydra:5432/${POSTGRES_HYDRA_DB}?sslmode=disable&max_conns=20&max_idle_conns=4
+      SECRETS_SYSTEM: ${HYDRA_SYSTEM_SECRET:-youReallyNeedToChangeThis}
+      URLS_SELF_ISSUER: http://localhost:4444/
+      URLS_CONSENT: http://localhost:8000/consent
+      URLS_LOGIN: http://localhost:8000/login
+      URLS_LOGOUT: http://localhost:8000/logout
+    networks:
+      - oauth-network
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # Auth Backend Service (Python)
+  auth-backend:
+    build:
+      context: ./auth-backend
+      dockerfile: Dockerfile
+    container_name: auth-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_AUTH_USER}:${POSTGRES_AUTH_PASSWORD}@postgres-auth:5432/${POSTGRES_AUTH_DB}
+      HYDRA_ADMIN_URL: http://hydra:4445
+      HYDRA_PUBLIC_URL: http://hydra:4444
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD}
+      JWT_PRIVATE_KEY_PATH: /app/keys/jwt_private.pem
+      JWT_PUBLIC_KEY_PATH: /app/keys/jwt_public.pem
+      SECRET_KEY: ${AUTH_BACKEND_SECRET_KEY}
+    volumes:
+      - ./keys:/app/keys
+    networks:
+      - oauth-network
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      hydra:
+        condition: service_started
+    restart: unless-stopped
+
+  # Management UI (React)
+  management-ui:
+    build:
+      context: ./management-ui
+      dockerfile: Dockerfile
+    container_name: management-ui
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_AUTH_BACKEND_URL: http://localhost:8000
+      REACT_APP_HYDRA_PUBLIC_URL: http://localhost:4444
+    networks:
+      - oauth-network
+    depends_on:
+      - auth-backend
+    restart: unless-stopped
+
+volumes:
+  hydra-db-data:
+  auth-db-data:
+
+networks:
+  oauth-network:
+    driver: bridge
