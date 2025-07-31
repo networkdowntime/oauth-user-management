@@ -50,6 +50,8 @@ export interface ServiceAccount {
   owner?: string;
   clientMetadata?: Record<string, any>;
   redirectUris?: string[];
+  postLogoutRedirectUris?: string[];
+  allowedCorsOrigins?: string[];
   skipConsent: boolean;
   isActive: boolean;
   clientSecret?: string;
@@ -94,6 +96,8 @@ export interface CreateServiceAccountRequest {
   roleIds?: string[];
   owner?: string;
   redirectUris?: string[];
+  postLogoutRedirectUris?: string[];
+  allowedCorsOrigins?: string[];
   grantTypes?: string[];
   createdBy: string;
 }
@@ -105,6 +109,8 @@ export interface UpdateServiceAccountRequest {
   scopeIds?: string[];
   owner?: string;
   redirectUris?: string[];
+  postLogoutRedirectUris?: string[];
+  allowedCorsOrigins?: string[];
   grantTypes?: string[];
   roleIds?: string[];
 }

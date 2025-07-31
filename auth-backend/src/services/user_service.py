@@ -303,6 +303,25 @@ class UserService:
         for role_id in new_role_ids - current_role_ids:
             await self.assign_role_to_user(user_id, role_id, performed_by)
     
+    async def authenticate_user(self, email: str, password: str) -> Optional[User]:
+        """Authenticate a user by email and password."""
+        try:
+            user = await self.user_repo.get_by_email(email)
+            if not user:
+                return None
+            
+            # Verify password using Argon2
+            try:
+                ph.verify(user.password_hash, password)
+                return user
+            except Exception:
+                # Password verification failed
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error authenticating user {email}: {str(e)}")
+            return None
+    
     async def _log_action(
         self,
         action: str,

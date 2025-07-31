@@ -63,14 +63,9 @@ def serialize_service_account_response(service_account: ServiceAccount) -> Servi
     scopes_data = []
     if hasattr(service_account, 'scopes') and service_account.scopes:
         for scope in service_account.scopes:
-            # Handle applies_to - ensure it's a list
-            applies_to_list = []
-            if hasattr(scope, 'applies_to') and scope.applies_to:
-                if isinstance(scope.applies_to, list):
-                    applies_to_list = scope.applies_to
-                else:
-                    # It might be a string or other format, convert to list
-                    applies_to_list = [scope.applies_to] if scope.applies_to else []
+            # Use the applies_to_list property which properly converts 
+            # the comma-separated string to a list of enum values
+            applies_to_list = scope.applies_to_list
 
             scopes_data.append(ScopeResponse(
                 id=str(scope.id),  # Convert UUID to string
@@ -96,6 +91,8 @@ def serialize_service_account_response(service_account: ServiceAccount) -> Servi
         owner=service_account.owner,
         client_metadata=service_account.client_metadata,
         redirect_uris=service_account.redirect_uris or [],
+        post_logout_redirect_uris=service_account.post_logout_redirect_uris or [],
+        allowed_cors_origins=service_account.allowed_cors_origins or [],
         skip_consent=service_account.skip_consent,
         is_active=service_account.is_active,
         last_used_at=service_account.last_used_at,

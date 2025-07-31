@@ -19,11 +19,11 @@ RUN pip install poetry==1.6.1
 # Set work directory
 WORKDIR /app
 
-# Copy poetry files and install dependencies
-COPY pyproject.toml poetry.lock* ./
+# Copy poetry files and requirements
+COPY pyproject.toml poetry.lock* requirements.txt ./
 
-# Install dependencies with pip globally to avoid venv issues
-RUN pip install fastapi uvicorn[standard] sqlalchemy alembic asyncpg pydantic[email] pydantic-settings passlib[argon2] argon2-cffi python-jose[cryptography] python-multipart httpx pytest pytest-asyncio slowapi structlog email-validator
+# Install dependencies from requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy application code
 COPY . .

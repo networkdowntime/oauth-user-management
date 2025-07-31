@@ -29,7 +29,7 @@ def upgrade():
     # 2. Match scope names to scope IDs
     # 3. Insert records into service_account_scopes table
     connection.execute(sa.text("""
-        INSERT INTO service_account_scopes (service_account_id, scope_id)
+        INSERT INTO scopes (service_account_id, scope_id)
         SELECT DISTINCT 
             sa.id as service_account_id,
             s.id as scope_id

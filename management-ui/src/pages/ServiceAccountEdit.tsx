@@ -37,6 +37,8 @@ interface ServiceAccountFormData {
   owner: string;
   grantTypes: string[];
   redirectUris: string[];
+  postLogoutRedirectUris: string[];
+  allowedCorsOrigins: string[];
   tokenEndpointAuthMethod: string;
   audience: string;
   isActive: boolean;
@@ -63,6 +65,8 @@ const ServiceAccountEdit: React.FC = () => {
     owner: '',
     grantTypes: [],
     redirectUris: [],
+    postLogoutRedirectUris: [],
+    allowedCorsOrigins: [],
     tokenEndpointAuthMethod: 'client_secret_basic',
     audience: '',
     isActive: true,
@@ -70,6 +74,8 @@ const ServiceAccountEdit: React.FC = () => {
 
   const [errors, setErrors] = useState<Partial<ServiceAccountFormData>>({});
   const [redirectUri, setRedirectUri] = useState('');
+  const [postLogoutRedirectUri, setPostLogoutRedirectUri] = useState('');
+  const [corsOrigin, setCorsOrigin] = useState('');
   const [selectedScopeIds, setSelectedScopeIds] = useState<string[]>([]);
   const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
   
@@ -99,6 +105,8 @@ const ServiceAccountEdit: React.FC = () => {
         owner: serviceAccount.owner || '',
         grantTypes: serviceAccount.grantTypes || [],
         redirectUris: serviceAccount.redirectUris || [],
+        postLogoutRedirectUris: serviceAccount.postLogoutRedirectUris || [],
+        allowedCorsOrigins: serviceAccount.allowedCorsOrigins || [],
         tokenEndpointAuthMethod: serviceAccount.tokenEndpointAuthMethod,
         audience: typeof serviceAccount.audience === 'string' ? serviceAccount.audience : '',
         isActive: serviceAccount.isActive,
@@ -200,6 +208,28 @@ const ServiceAccountEdit: React.FC = () => {
 
   const handleRemoveRedirectUri = (uri: string) => {
     handleInputChange('redirectUris', formData.redirectUris.filter(u => u !== uri));
+  };
+
+  const handleAddPostLogoutRedirectUri = () => {
+    if (postLogoutRedirectUri.trim() && !formData.postLogoutRedirectUris.includes(postLogoutRedirectUri.trim())) {
+      handleInputChange('postLogoutRedirectUris', [...formData.postLogoutRedirectUris, postLogoutRedirectUri.trim()]);
+      setPostLogoutRedirectUri('');
+    }
+  };
+
+  const handleRemovePostLogoutRedirectUri = (uri: string) => {
+    handleInputChange('postLogoutRedirectUris', formData.postLogoutRedirectUris.filter(u => u !== uri));
+  };
+
+  const handleAddCorsOrigin = () => {
+    if (corsOrigin.trim() && !formData.allowedCorsOrigins.includes(corsOrigin.trim())) {
+      handleInputChange('allowedCorsOrigins', [...formData.allowedCorsOrigins, corsOrigin.trim()]);
+      setCorsOrigin('');
+    }
+  };
+
+  const handleRemoveCorsOrigin = (origin: string) => {
+    handleInputChange('allowedCorsOrigins', formData.allowedCorsOrigins.filter(o => o !== origin));
   };
 
   if (serviceAccountLoading) {
@@ -509,6 +539,82 @@ const ServiceAccountEdit: React.FC = () => {
                         key={uri}
                         label={uri}
                         onDelete={() => handleRemoveRedirectUri(uri)}
+                        variant="outlined"
+                      />
+                    ))}
+                  </Box>
+                </Grid>
+
+                {/* Post-logout Redirect URIs */}
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Post-logout Redirect URIs
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                    <TextField
+                      fullWidth
+                      placeholder="https://example.com/logout"
+                      value={postLogoutRedirectUri}
+                      onChange={(e) => setPostLogoutRedirectUri(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddPostLogoutRedirectUri();
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outlined"
+                      onClick={handleAddPostLogoutRedirectUri}
+                      disabled={!postLogoutRedirectUri.trim()}
+                    >
+                      Add
+                    </Button>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {formData.postLogoutRedirectUris.map((uri) => (
+                      <Chip
+                        key={uri}
+                        label={uri}
+                        onDelete={() => handleRemovePostLogoutRedirectUri(uri)}
+                        variant="outlined"
+                      />
+                    ))}
+                  </Box>
+                </Grid>
+
+                {/* Allowed CORS Origins */}
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Allowed CORS Origins
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                    <TextField
+                      fullWidth
+                      placeholder="https://example.com"
+                      value={corsOrigin}
+                      onChange={(e) => setCorsOrigin(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddCorsOrigin();
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outlined"
+                      onClick={handleAddCorsOrigin}
+                      disabled={!corsOrigin.trim()}
+                    >
+                      Add
+                    </Button>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {formData.allowedCorsOrigins.map((origin) => (
+                      <Chip
+                        key={origin}
+                        label={origin}
+                        onDelete={() => handleRemoveCorsOrigin(origin)}
                         variant="outlined"
                       />
                     ))}

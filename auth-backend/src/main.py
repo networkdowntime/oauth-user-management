@@ -12,6 +12,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -21,6 +22,7 @@ from .api.v1.service_accounts import router as service_accounts_router
 from .api.v1.roles import router as roles_router
 from .api.v1.admin import router as admin_router
 from .api.v1.scopes import router as scopes_router
+from .api.v1.sync import router as sync_router
 from .core.config import settings
 from .core.database import create_tables, initialize_default_data
 from .core.exceptions import setup_exception_handlers
@@ -45,6 +47,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await create_tables()
         await initialize_default_data()
         logger.info("Database initialized successfully")
+        
+        # Run Hydra synchronization on startup
+        try:
+            from .core.database import AsyncSessionLocal
+            from .services.hydra_sync_service import create_hydra_sync_service
+            
+            async with AsyncSessionLocal() as db:
+                sync_service = create_hydra_sync_service(db)
+                result = await sync_service.sync_all()
+                
+                if result.success:
+                    summary = result.to_dict()['summary']
+                    logger.info(f"Hydra sync completed successfully: {summary}")
+                else:
+                    logger.warning(f"Hydra sync completed with errors: {result.errors}")
+                    
+        except Exception as e:
+            logger.warning(f"Hydra synchronization failed during startup: {e}")
+            logger.warning("Application will continue without Hydra sync")
+        
     except Exception as e:
         logger.warning(f"Database initialization failed: {e}")
         logger.warning("Application will start without database connectivity")
@@ -95,10 +117,11 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(admin_router, prefix="/api/v1", tags=["Admin"])
-    app.include_router(auth_router, prefix="/api/v1", tags=["Authentication"])
+    app.include_router(auth_router, tags=["Authentication"])  # No prefix for OAuth2 endpoints
     app.include_router(roles_router, prefix="/api/v1", tags=["Roles"])
     app.include_router(service_accounts_router, prefix="/api/v1", tags=["Service Accounts"])
     app.include_router(scopes_router, prefix="/api/v1", tags=["Scopes"])
+    app.include_router(sync_router, prefix="/api/v1", tags=["System"])
     app.include_router(users_router, prefix="/api/v1", tags=["Users"])
 
 

@@ -6,6 +6,7 @@ from .roles import router as roles_router
 from .admin import router as admin_router
 from .service_accounts import router as service_accounts_router
 from .scopes import router as scopes_router
+from .sync import router as sync_router
 
 __all__ = [
     "auth_router",
@@ -14,4 +15,5 @@ __all__ = [
     "admin_router",
     "service_accounts_router",
     "scopes_router",
+    "sync_router",
 ]

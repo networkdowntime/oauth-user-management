@@ -46,6 +46,8 @@ class ServiceAccount(Base):
     token_endpoint_auth_signing_alg = Column(String(50), nullable=True)
     client_name = Column(String(255), nullable=False)  # Human-readable name
     redirect_uris = Column(JSON, nullable=True, default=lambda: [])
+    post_logout_redirect_uris = Column(JSON, nullable=True, default=lambda: [])
+    allowed_cors_origins = Column(JSON, nullable=True, default=lambda: [])
     skip_consent = Column(Boolean, default=True)  # Usually true for service accounts
     
     # Additional OAuth2 fields
@@ -97,6 +99,8 @@ class ServiceAccount(Base):
             "metadata": self.client_metadata or {},
             "client_name": self.client_name,
             "redirect_uris": self.redirect_uris or [],
+            "post_logout_redirect_uris": self.post_logout_redirect_uris or [],
+            "allowed_cors_origins": self.allowed_cors_origins or [],
             "skip_consent": self.skip_consent,
             "jwks": self.jwks,
             "jwks_uri": self.jwks_uri,
@@ -121,6 +125,8 @@ class ServiceAccount(Base):
             token_endpoint_auth_signing_alg=hydra_client.get("token_endpoint_auth_signing_alg"),
             client_name=hydra_client.get("client_name", ""),
             redirect_uris=hydra_client.get("redirect_uris", []),
+            post_logout_redirect_uris=hydra_client.get("post_logout_redirect_uris", []),
+            allowed_cors_origins=hydra_client.get("allowed_cors_origins", []),
             skip_consent=hydra_client.get("skip_consent", True),
             jwks=hydra_client.get("jwks"),
             jwks_uri=hydra_client.get("jwks_uri"),

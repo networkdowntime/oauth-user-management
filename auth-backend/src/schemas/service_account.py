@@ -33,6 +33,8 @@ class ServiceAccountBase(BaseModel):
     owner: Optional[str] = Field(None, description="Owner identifier")
     client_metadata: Optional[Dict[str, Any]] = Field(None, description="Free-form metadata")
     redirect_uris: Optional[List[str]] = Field(default=[], description="OAuth2 redirect URIs")
+    post_logout_redirect_uris: Optional[List[str]] = Field(default=[], description="Post-logout redirect URIs")
+    allowed_cors_origins: Optional[List[str]] = Field(default=[], description="Allowed CORS origins")
     skip_consent: bool = Field(default=True, description="Skip OAuth2 consent")
     is_active: bool = Field(default=True, description="Whether the service account is active")
 
@@ -109,6 +111,8 @@ class ServiceAccountUpdate(BaseModel):
     owner: Optional[str] = Field(None, description="Owner identifier")
     client_metadata: Optional[Dict[str, Any]] = Field(None, description="Free-form metadata")
     redirect_uris: Optional[List[str]] = Field(None, description="OAuth2 redirect URIs")
+    post_logout_redirect_uris: Optional[List[str]] = Field(None, description="Post-logout redirect URIs")
+    allowed_cors_origins: Optional[List[str]] = Field(None, description="Allowed CORS origins")
     skip_consent: Optional[bool] = Field(None, description="Skip OAuth2 consent")
     is_active: Optional[bool] = Field(None, description="Whether the service account is active")
 

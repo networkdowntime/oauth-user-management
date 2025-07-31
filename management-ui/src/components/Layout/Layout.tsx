@@ -13,6 +13,11 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
+  Button,
+  Divider,
+  Alert,
+  Snackbar,
+  CircularProgress,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -22,9 +27,11 @@ import {
   Menu as MenuIcon,
   Analytics as AnalyticsIcon,
   Api as ApiIcon,
+  Sync as SyncIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { api } from '../../services/api';
 
 const drawerWidth = 240;
 
@@ -36,12 +43,55 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [isSyncing, setIsSyncing] = React.useState(false);
+  const [syncResult, setSyncResult] = React.useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { clearBreadcrumbs } = useNavigation();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleSyncHydra = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    
+    try {
+      const result = await api.syncHydra();
+      
+      if (result.success) {
+        const summary = result.summary;
+        const totalChanges = summary.clients_created + summary.clients_updated + summary.clients_deleted;
+        
+        if (totalChanges === 0) {
+          setSyncResult({
+            success: true,
+            message: 'Hydra is already in sync with the database'
+          });
+        } else {
+          setSyncResult({
+            success: true,
+            message: `Sync completed: ${summary.clients_created} created, ${summary.clients_updated} updated, ${summary.clients_deleted} deleted`
+          });
+        }
+      } else {
+        setSyncResult({
+          success: false,
+          message: `Sync completed with errors: ${result.details.errors.join(', ')}`
+        });
+      }
+    } catch (error) {
+      setSyncResult({
+        success: false,
+        message: `Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const menuItems = [
@@ -103,6 +153,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </ListItem>
         ))}
       </List>
+      
+      {/* Resync Hydra Button */}
+      <Box sx={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
+        <Divider sx={{ mb: 2 }} />
+        <Button
+          variant="outlined"
+          fullWidth
+          startIcon={isSyncing ? <CircularProgress size={20} /> : <SyncIcon />}
+          onClick={handleSyncHydra}
+          disabled={isSyncing}
+          sx={{
+            textTransform: 'none',
+            fontSize: '0.875rem',
+          }}
+        >
+          {isSyncing ? 'Syncing...' : 'Resync Hydra'}
+        </Button>
+      </Box>
     </div>
   );
 
@@ -181,6 +249,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Toolbar />
         {children}
       </Box>
+      
+      {/* Sync Result Snackbar */}
+      <Snackbar
+        open={syncResult !== null}
+        autoHideDuration={6000}
+        onClose={() => setSyncResult(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSyncResult(null)}
+          severity={syncResult?.success ? 'success' : 'error'}
+          sx={{ width: '100%' }}
+        >
+          {syncResult?.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

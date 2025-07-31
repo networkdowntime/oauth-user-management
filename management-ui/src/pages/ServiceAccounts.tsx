@@ -66,6 +66,8 @@ const ServiceAccounts: React.FC = () => {
     accountType: 'Service-to-service',
     owner: '',
     redirectUris: [],
+    postLogoutRedirectUris: [],
+    allowedCorsOrigins: [],
     grantTypes: [],
     createdBy: 'admin', // TODO: Get from auth context
   });
@@ -105,6 +107,8 @@ const ServiceAccounts: React.FC = () => {
         accountType: 'Service-to-service',
         owner: '',
         redirectUris: [],
+        postLogoutRedirectUris: [],
+        allowedCorsOrigins: [],
         grantTypes: [],
         createdBy: 'admin', // TODO: Get from auth context
       });
@@ -490,6 +494,30 @@ const ServiceAccounts: React.FC = () => {
               onChange={(e) => setNewServiceAccount({ 
                 ...newServiceAccount, 
                 redirectUris: e.target.value.split('\n').filter(uri => uri.trim()) 
+              })}
+            />
+            <TextField
+              label="Post-logout Redirect URIs"
+              fullWidth
+              placeholder="one URI per line"
+              multiline
+              rows={3}
+              value={newServiceAccount.postLogoutRedirectUris?.join('\n') || ''}
+              onChange={(e) => setNewServiceAccount({ 
+                ...newServiceAccount, 
+                postLogoutRedirectUris: e.target.value.split('\n').filter(uri => uri.trim()) 
+              })}
+            />
+            <TextField
+              label="Allowed CORS Origins"
+              fullWidth
+              placeholder="one origin per line"
+              multiline
+              rows={3}
+              value={newServiceAccount.allowedCorsOrigins?.join('\n') || ''}
+              onChange={(e) => setNewServiceAccount({ 
+                ...newServiceAccount, 
+                allowedCorsOrigins: e.target.value.split('\n').filter(uri => uri.trim()) 
               })}
             />
           </Box>

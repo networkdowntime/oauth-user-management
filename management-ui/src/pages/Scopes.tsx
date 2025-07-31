@@ -505,9 +505,9 @@ const Scopes: React.FC = () => {
                 </Box>
               )}
             >
-              <MenuItem value="Service">Service-to-service</MenuItem>
+              <MenuItem value="Service-to-service">Service-to-service</MenuItem>
               <MenuItem value="Browser">Browser applications</MenuItem>
-            </Select>
+            </Select>            
           </FormControl>
           <FormControlLabel
             control={
@@ -537,7 +537,7 @@ const Scopes: React.FC = () => {
         <DialogContent>
           <Typography>
             Are you sure you want to delete the scope "{selectedScope?.name}"?
-            {selectedScope?.serviceAccountCount && selectedScope.serviceAccountCount > 0 && (
+            {selectedScope && selectedScope.serviceAccountCount > 0 && (
               <>
                 <br />
                 <Typography color="error" sx={{ mt: 1 }}>

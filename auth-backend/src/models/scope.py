@@ -36,7 +36,7 @@ class Scope(Base):
     
     name = Column(String(100), unique=True, nullable=False, index=True)
     description = Column(Text, nullable=False)
-    applies_to = Column(String(20), nullable=False)  # Comma-separated values: "Service-to-service", "Browser", or "Service-to-service,Browser"
+    applies_to = Column(String(26), nullable=False)  # Comma-separated values: "Service-to-service", "Browser", or "Service-to-service,Browser"
     is_active = Column(Boolean, default=True, nullable=False)
     
     # Relationships

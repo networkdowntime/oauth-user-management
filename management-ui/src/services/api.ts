@@ -125,6 +125,8 @@ interface ServiceAccountResponse {
   owner?: string;
   client_metadata?: Record<string, any>;
   redirect_uris?: string[];
+  post_logout_redirect_uris?: string[];
+  allowed_cors_origins?: string[];
   skip_consent: boolean;
   is_active: boolean;
   client_secret?: string;
@@ -209,6 +211,8 @@ const transformServiceAccount = (backendServiceAccount: ServiceAccountResponse):
   owner: backendServiceAccount.owner,
   clientMetadata: backendServiceAccount.client_metadata,
   redirectUris: backendServiceAccount.redirect_uris,
+  postLogoutRedirectUris: backendServiceAccount.post_logout_redirect_uris,
+  allowedCorsOrigins: backendServiceAccount.allowed_cors_origins,
   skipConsent: backendServiceAccount.skip_consent,
   isActive: backendServiceAccount.is_active,
   clientSecret: backendServiceAccount.client_secret,
@@ -279,6 +283,8 @@ const transformCreateServiceAccountRequest = (frontendRequest: import('./mockApi
   role_ids: frontendRequest.roleIds || [],
   owner: frontendRequest.owner,
   redirect_uris: frontendRequest.redirectUris || [],
+  post_logout_redirect_uris: frontendRequest.postLogoutRedirectUris || [],
+  allowed_cors_origins: frontendRequest.allowedCorsOrigins || [],
   created_by: frontendRequest.createdBy,
 });
 
@@ -391,6 +397,8 @@ export const api = {
       scope_ids: serviceAccountData.scopeIds,
       owner: serviceAccountData.owner,
       redirect_uris: serviceAccountData.redirectUris,
+      post_logout_redirect_uris: serviceAccountData.postLogoutRedirectUris,
+      allowed_cors_origins: serviceAccountData.allowedCorsOrigins,
       role_ids: serviceAccountData.roleIds,
     };
     const response = await apiClient.put<ServiceAccountResponse>(`/service-accounts/${id}`, backendRequest);
@@ -640,6 +648,47 @@ export const api = {
       return { deleted: match ? parseInt(match[0]) : 0 };
     } catch (error) {
       console.error('Error bulk deleting scopes:', error);
+      throw error;
+    }
+  },
+
+  // Hydra Sync API
+  async syncHydra(): Promise<{
+    success: boolean;
+    summary: {
+      clients_created: number;
+      clients_updated: number;
+      clients_deleted: number;
+      scopes_synced: number;
+      errors: number;
+    };
+    details: {
+      clients_created: string[];
+      clients_updated: string[];
+      clients_deleted: string[];
+      scopes_synced: string[];
+      errors: string[];
+    };
+  }> {
+    try {
+      const response = await apiClient.post('/hydra/sync');
+      return response.data;
+    } catch (error) {
+      console.error('Error syncing with Hydra:', error);
+      throw error;
+    }
+  },
+
+  async getHydraStatus(): Promise<{
+    hydra_connected: boolean;
+    status: 'healthy' | 'unhealthy' | 'error';
+    error?: string;
+  }> {
+    try {
+      const response = await apiClient.get('/hydra/status');
+      return response.data;
+    } catch (error) {
+      console.error('Error checking Hydra status:', error);
       throw error;
     }
   },
