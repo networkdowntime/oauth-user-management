@@ -34,7 +34,8 @@ async def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
 async def login_page(
     request: Request,
     login_challenge: str = Query(...),
-    error: Optional[str] = Query(None)
+    error: Optional[str] = Query(None),
+    email: Optional[str] = Query(None)
 ):
     """Display the login page."""
     try:
@@ -50,12 +51,20 @@ async def login_page(
             )
             return RedirectResponse(url=accept_response["redirect_to"], status_code=303)
         
+        # Map error codes to user-friendly messages
+        error_messages = {
+            "invalid_credentials": "Invalid email or password",
+            "account_disabled": "Account is disabled"
+        }
+        error_message = error_messages.get(error) if error else None
+        
         # Render login page
         return templates.TemplateResponse("login.html", {
             "request": request,
             "login_challenge": login_challenge,
             "client": login_request.get("client", {}),
-            "error": error
+            "error": error_message,
+            "email": email or ""
         })
         
     except Exception as e:
@@ -83,24 +92,19 @@ async def login_submit(
         user = await user_service.authenticate_user(email, password)
         
         if not user:
-            # Authentication failed, show error
-            return templates.TemplateResponse("login.html", {
-                "request": request,
-                "login_challenge": login_challenge,
-                "client": login_request.get("client", {}),
-                "email": email,
-                "error": "Invalid email or password"
-            })
+            # Authentication failed, redirect back to login with error
+            return RedirectResponse(
+                url=f"/login?login_challenge={login_challenge}&error=invalid_credentials&email={email}",
+                status_code=303
+            )
         
         # Check if user is active
-        if not user.is_active:
-            return templates.TemplateResponse("login.html", {
-                "request": request,
-                "login_challenge": login_challenge,
-                "client": login_request.get("client", {}),
-                "email": email,
-                "error": "Account is disabled"
-            })
+        if not getattr(user, 'is_active', True):
+            # Account disabled, redirect back to login with error
+            return RedirectResponse(
+                url=f"/login?login_challenge={login_challenge}&error=account_disabled&email={email}",
+                status_code=303
+            )
         
         # Accept login request
         remember_bool = remember or False
@@ -111,8 +115,8 @@ async def login_submit(
             remember_for=86400 if remember_bool else 3600,  # 24h if remember, 1h otherwise
             context={
                 "user_id": str(user.id),  # Convert UUID to string for JSON serialization
-                "email": user.email,
-                "username": getattr(user, 'username', user.email)  # Fallback to email if no username
+                "email": getattr(user, 'email', ''),
+                "username": getattr(user, 'username', getattr(user, 'email', ''))  # Fallback to email if no username
             }
         )
         

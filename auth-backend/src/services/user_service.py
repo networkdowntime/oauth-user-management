@@ -313,9 +313,23 @@ class UserService:
             # Verify password using Argon2
             try:
                 ph.verify(user.password_hash, password)
+                
+                # Successful login: update last_login_at and reset failed attempts
+                await self.user_repo.update(user, {
+                    "last_login_at": datetime.now(),
+                    "failed_login_attempts": 0
+                })
+                
+                logger.info(f"User authenticated successfully: {email}")
                 return user
             except Exception:
-                # Password verification failed
+                # Password verification failed: increment failed login attempts
+                current_attempts = getattr(user, 'failed_login_attempts', 0) or 0
+                await self.user_repo.update(user, {
+                    "failed_login_attempts": current_attempts + 1
+                })
+                
+                logger.warning(f"Password verification failed for user: {email}, failed attempts: {current_attempts + 1}")
                 return None
                 
         except Exception as e:
