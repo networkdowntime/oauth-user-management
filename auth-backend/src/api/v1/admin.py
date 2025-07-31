@@ -17,11 +17,13 @@ def get_admin_service(db: AsyncSession = Depends(get_db)) -> AdminService:
     """Dependency to get admin service instance."""
     from ...repositories.user import UserRepository
     from ...repositories.role import RoleRepository
+    from ...repositories.service_account import ServiceAccountRepository
     
     audit_repo = AuditLogRepository(db)
     user_repo = UserRepository(db)
     role_repo = RoleRepository(db)
-    return AdminService(audit_repo, user_repo, role_repo)
+    service_account_repo = ServiceAccountRepository(db)
+    return AdminService(audit_repo, user_repo, role_repo, service_account_repo)
 
 
 @router.get("/audit-logs", response_model=List[AuditLogResponse])

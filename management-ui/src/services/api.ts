@@ -54,6 +54,7 @@ const apiClient = axios.create({
 // Request interceptor for authentication
 apiClient.interceptors.request.use(
   (config) => {
+    // Get OAuth2 access token from localStorage
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -65,14 +66,41 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling and token refresh
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access - redirect to login
+      // Try to refresh token before redirecting to login
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) {
+        try {
+          // Dynamic import to avoid circular dependency
+          const { authService } = await import('./authService');
+          const refreshSuccess = await authService.refreshToken();
+          
+          if (refreshSuccess) {
+            // Retry the original request with new token
+            const newToken = localStorage.getItem('access_token');
+            if (newToken) {
+              error.config.headers.Authorization = `Bearer ${newToken}`;
+              return apiClient.request(error.config);
+            }
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+        }
+      }
+      
+      // Refresh failed or no refresh token - user needs to login again
       localStorage.removeItem('access_token');
-      window.location.href = '/login';
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('id_token');
+      localStorage.removeItem('token_expires_at');
+      
+      // Trigger OAuth2 login flow
+      const { authService } = await import('./authService');
+      await authService.login();
     }
     return Promise.reject(error);
   }

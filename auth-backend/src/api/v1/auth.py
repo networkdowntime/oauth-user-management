@@ -110,7 +110,7 @@ async def login_submit(
             remember=remember_bool,
             remember_for=86400 if remember_bool else 3600,  # 24h if remember, 1h otherwise
             context={
-                "user_id": user.id,
+                "user_id": str(user.id),  # Convert UUID to string for JSON serialization
                 "email": user.email,
                 "username": getattr(user, 'username', user.email)  # Fallback to email if no username
             }

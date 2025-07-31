@@ -87,9 +87,9 @@ class ServiceAccount(Base):
     def to_hydra_client(self) -> Dict[str, Any]:
         """Convert to Hydra client format for API calls."""
         scope_string = " ".join(scope.name for scope in self.scopes) if self.scopes else ""
-        return {
+        
+        client_data = {
             "client_id": self.client_id,
-            "client_secret": self.client_secret,
             "grant_types": self.grant_types,
             "response_types": self.response_types,
             "scope": scope_string,
@@ -107,6 +107,12 @@ class ServiceAccount(Base):
             "id_token_signed_response_alg": self.id_token_signed_response_alg,
             "account_type": self.account_type,
         }
+        
+        # Only include client_secret for confidential clients
+        if self.token_endpoint_auth_method != 'none' and self.client_secret is not None:
+            client_data["client_secret"] = self.client_secret
+            
+        return client_data
     
     @classmethod
     def from_hydra_client(cls, hydra_client: Dict[str, Any], created_by: str, account_type: Optional[str] = None) -> "ServiceAccount":

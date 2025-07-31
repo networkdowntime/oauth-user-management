@@ -18,6 +18,10 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
+  Menu,
+  MenuItem,
+  Avatar,
+  Chip,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -28,9 +32,12 @@ import {
   Analytics as AnalyticsIcon,
   Api as ApiIcon,
   Sync as SyncIcon,
+  AccountCircle,
+  Logout,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 
 const drawerWidth = 240;
@@ -48,12 +55,27 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     success: boolean;
     message: string;
   } | null>(null);
+  const [userMenuAnchor, setUserMenuAnchor] = React.useState<null | HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { clearBreadcrumbs } = useNavigation();
+  const { user, logout } = useAuth();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setUserMenuAnchor(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchor(null);
+  };
+
+  const handleLogout = async () => {
+    handleUserMenuClose();
+    await logout();
   };
 
   const handleSyncHydra = async () => {
@@ -193,11 +215,79 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             OAuth User Management
           </Typography>
+          
+          {/* User Info and Menu */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {user && (
+              <>
+                <Chip
+                  label={user.name || user.email}
+                  variant="outlined"
+                  size="small"
+                  sx={{ 
+                    color: 'white', 
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    display: { xs: 'none', sm: 'flex' }
+                  }}
+                />
+                <IconButton
+                  color="inherit"
+                  onClick={handleUserMenuOpen}
+                  sx={{ p: 1 }}
+                >
+                  <Avatar 
+                    sx={{ 
+                      width: 32, 
+                      height: 32, 
+                      bgcolor: 'rgba(255, 255, 255, 0.2)' 
+                    }}
+                  >
+                    <AccountCircle />
+                  </Avatar>
+                </IconButton>
+              </>
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
+      
+      {/* User Menu */}
+      <Menu
+        anchorEl={userMenuAnchor}
+        open={Boolean(userMenuAnchor)}
+        onClose={handleUserMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        {user && (
+          <MenuItem disabled>
+            <Box>
+              <Typography variant="body2" fontWeight="bold">
+                {user.name || 'User'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {user.email}
+              </Typography>
+            </Box>
+          </MenuItem>
+        )}
+        <Divider />
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <Logout fontSize="small" />
+          </ListItemIcon>
+          Logout
+        </MenuItem>
+      </Menu>
       
       <Box
         component="nav"

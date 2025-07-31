@@ -97,6 +97,9 @@ class Settings(BaseSettings):
     hydra_public_url: str = Field(
         default="http://hydra:4444", description="Hydra Public API URL"
     )
+    hydra_client_id: str = Field(
+        default="management-ui", description="Hydra client ID for management UI"
+    )
     hydra_timeout: int = Field(
         default=30, description="Hydra API request timeout in seconds"
     )

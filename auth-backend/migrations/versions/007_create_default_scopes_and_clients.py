@@ -53,6 +53,12 @@ def upgrade():
     """))
 
     connection.execute(sa.text("""
+        INSERT INTO scopes (id, name, description, applies_to, is_active, created_at, updated_at)
+        VALUES (gen_random_uuid(), 'admin', 'Required scope to access OAuth2 admin functionality.', 'Service-to-service,Browser', true, LOCALTIMESTAMP, LOCALTIMESTAMP)
+        ON CONFLICT (name) DO NOTHING;
+    """))
+
+    connection.execute(sa.text("""
         INSERT INTO public.service_accounts(
             id, client_id, client_secret, grant_types, response_types, token_endpoint_auth_method, audience, owner, client_metadata, token_endpoint_auth_signing_alg, client_name, redirect_uris, skip_consent, jwks, jwks_uri, id_token_signed_response_alg, account_type, is_active, description, last_used_at, created_by, created_at, updated_at)
             VALUES (
@@ -88,10 +94,10 @@ def upgrade():
             VALUES (
                 gen_random_uuid(), -- id
                 'management-ui', -- client_id
-                'management-ui-secret-for-backend-communication', -- client_secret
+                NULL, -- client_secret
                 '["authorization_code", "refresh_token", "implicit"]', -- grant_types
                 '["code", "id_token", "token"]', -- response_types
-                'client_secret_basic', -- token_endpoint_auth_method
+                'none', -- token_endpoint_auth_method
                 '["management-ui", "auth-backend"]', -- audience
                 'Ryan Wiles', -- owner
                 '{"purpose": "User management interface", "environment": "development", "application_type": "web"}', -- client_metadata
@@ -150,6 +156,11 @@ def upgrade():
             ON CONFLICT (service_account_id, scope_id) DO NOTHING;
     """))
 
+    connection.execute(sa.text("""
+        INSERT INTO service_account_scopes(service_account_id, scope_id)
+            SELECT sa.id, s.id FROM service_accounts sa, scopes s where sa.client_id='management-ui' and s.name = 'admin'
+            ON CONFLICT (service_account_id, scope_id) DO NOTHING;
+    """))
 def downgrade():
     """
     Add back the scope column and restore scope data from relationships.

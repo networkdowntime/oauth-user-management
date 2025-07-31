@@ -6,6 +6,7 @@ from pathlib import Path
 from ..repositories.audit_log import AuditLogRepository
 from ..repositories.user import UserRepository
 from ..repositories.role import RoleRepository
+from ..repositories.service_account import ServiceAccountRepository
 from ..schemas.audit import AuditLogResponse
 from ..schemas.common import SystemStatsResponse
 from ..core.config import settings
@@ -17,10 +18,11 @@ logger = get_logger(__name__)
 class AdminService:
     """Service for admin-related operations."""
     
-    def __init__(self, audit_repo: AuditLogRepository, user_repo: UserRepository, role_repo: RoleRepository):
+    def __init__(self, audit_repo: AuditLogRepository, user_repo: UserRepository, role_repo: RoleRepository, service_account_repo: ServiceAccountRepository):
         self.audit_repo = audit_repo
         self.user_repo = user_repo
         self.role_repo = role_repo
+        self.service_account_repo = service_account_repo
     
     async def get_audit_logs(
         self,
@@ -56,8 +58,9 @@ class AdminService:
         users = await self.user_repo.get_all(limit=1000)  # Get all users with a reasonable limit
         user_count = len([user for user in users if getattr(user, 'user_type', 'user') == "user"])
         
+        service_accounts = await self.service_account_repo.get_all(limit=1000)  # Get all service_accounts with a reasonable limit
         # Count service accounts (if they exist as a separate user type)
-        service_count = len([user for user in users if getattr(user, 'user_type', 'user') == "service"])
+        service_count = len(service_accounts)
         
         # Count roles
         roles = await self.role_repo.get_all(limit=1000)  # Get all roles with a reasonable limit

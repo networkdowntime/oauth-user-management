@@ -12,6 +12,7 @@ from ...services.user_service import UserService
 from ...schemas.user import UserResponse, UserCreate, UserUpdate, UserPasswordReset
 from ...schemas.common import SuccessResponse
 from ...schemas.audit import AuditLogResponse
+from ...middleware.auth import get_current_user
 
 router = APIRouter()
 
@@ -28,9 +29,12 @@ def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
 async def get_users(
     skip: int = 0,
     limit: int = 100,
-    user_service: UserService = Depends(get_user_service)
+    user_service: UserService = Depends(get_user_service),
+    current_user: dict = Depends(get_current_user)
 ):
-    """Get all users."""
+    """Get all users. Requires authentication."""
+    # Log the authenticated user for debugging
+    print(f"Authenticated user: {current_user.get('sub', 'unknown')}")
     return await user_service.get_users(skip=skip, limit=limit)
 
 
