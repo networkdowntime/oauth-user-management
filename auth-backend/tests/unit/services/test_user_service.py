@@ -188,19 +188,19 @@ class TestUserService:
     async def test_delete_user_success(self, user_service, mock_user_repo, sample_user):
         """Test successful user deletion."""
         user_id = str(sample_user.id)
-        mock_user_repo.get_by_id.return_value = sample_user
-        mock_user_repo.delete.return_value = True
+        mock_user_repo.get_by_id_with_roles.return_value = sample_user
+        mock_user_repo.delete_user_with_roles.return_value = True
         
         with patch.object(user_service, '_log_action') as mock_log:
             result = await user_service.delete_user(user_id, "admin")
         
-        mock_user_repo.delete.assert_called_once_with(user_id)
+        mock_user_repo.delete_user_with_roles.assert_called_once_with(user_id)
         mock_log.assert_called_once()
         assert result is True
 
     async def test_delete_user_not_found(self, user_service, mock_user_repo):
         """Test user deletion when user not found."""
-        mock_user_repo.get_by_id.return_value = None
+        mock_user_repo.get_by_id_with_roles.return_value = None
         
         result = await user_service.delete_user("nonexistent-id", "admin")
         
@@ -209,8 +209,8 @@ class TestUserService:
     async def test_delete_user_failure(self, user_service, mock_user_repo, sample_user):
         """Test user deletion failure."""
         user_id = str(sample_user.id)
-        mock_user_repo.get_by_id.return_value = sample_user
-        mock_user_repo.delete.return_value = False
+        mock_user_repo.get_by_id_with_roles.return_value = sample_user
+        mock_user_repo.delete_user_with_roles.return_value = False
         
         result = await user_service.delete_user(user_id, "admin")
         

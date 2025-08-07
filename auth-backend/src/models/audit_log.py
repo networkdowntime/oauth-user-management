@@ -5,13 +5,11 @@ This module defines the AuditLog model which tracks all important
 system events for security and compliance purposes.
 """
 
-from datetime import datetime
-from typing import Optional, Dict, Any
 import json
+from datetime import datetime
+from typing import Any, Dict, Optional
 
-from sqlalchemy import Column, String, DateTime, Text, JSON
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import JSON, Column, DateTime, String, Text
 
 from ..core.database import Base
 
@@ -19,7 +17,7 @@ from ..core.database import Base
 class AuditLog(Base):
     """
     Audit log model for tracking system events.
-    
+
     Attributes:
         action: The action that was performed (e.g., 'user_created', 'login_success')
         resource_type: Type of resource affected (e.g., 'user', 'role', 'service')
@@ -30,9 +28,9 @@ class AuditLog(Base):
         user_agent: User agent string of the client
         timestamp: When the action occurred
     """
-    
+
     __tablename__ = "audit_logs"
-    
+
     action = Column(String(100), nullable=False, index=True)
     resource_type = Column(String(50), nullable=False, index=True)
     resource_id = Column(String(255), nullable=True, index=True)
@@ -41,17 +39,17 @@ class AuditLog(Base):
     ip_address = Column(String(45), nullable=True)  # IPv6 max length
     user_agent = Column(Text, nullable=True)
     timestamp = Column(DateTime, default=datetime.now, nullable=False, index=True)
-    
+
     def __repr__(self) -> str:
         return f"<AuditLog(action='{self.action}', resource_type='{self.resource_type}')>"
-    
+
     @property
     def details_str(self) -> str:
         """Get details as a formatted string."""
         if self.details:
             return json.dumps(self.details, indent=2)
         return ""
-    
+
     @classmethod
     def create_log(
         cls,
@@ -65,7 +63,7 @@ class AuditLog(Base):
     ) -> "AuditLog":
         """
         Create a new audit log entry.
-        
+
         Args:
             action: The action that was performed
             resource_type: Type of resource affected
@@ -74,7 +72,7 @@ class AuditLog(Base):
             details: Additional details about the action
             ip_address: IP address from which the action was performed
             user_agent: User agent string of the client
-            
+
         Returns:
             AuditLog: New audit log instance
         """

@@ -1,17 +1,19 @@
 """Service Account model for OAuth2 client management."""
 
-from typing import Optional, Dict, Any
-from sqlalchemy import Column, String, DateTime, JSON, Boolean, Text
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
 import enum
+import uuid
+from typing import Any, Dict, Optional
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, String, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from ..core.database import Base
 
 
 class ServiceAccountType(enum.Enum):
     """Service Account type enumeration."""
+
     SERVICE_TO_SERVICE = "Service-to-service"
     BROWSER = "Browser"
 
@@ -19,76 +21,69 @@ class ServiceAccountType(enum.Enum):
 class ServiceAccount(Base):
     """
     Service Account model representing OAuth2 clients for machine-to-machine authentication.
-    
+
     This model stores OAuth2 client information that syncs with Hydra admin API.
     Service accounts can be assigned roles just like users.
     """
+
     __tablename__ = "service_accounts"
-    
+
     # Primary key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    
+
     # OAuth2 Required Fields
     client_id = Column(String(255), unique=True, nullable=False, index=True)
     client_secret = Column(String(512), nullable=True)  # Nullable for public clients
     grant_types = Column(JSON, nullable=False, default=lambda: ["client_credentials"])
-    response_types = Column(JSON, nullable=False, default=lambda: [])
-    token_endpoint_auth_method = Column(
-        String(50), 
-        nullable=False, 
-        default="client_secret_basic"
-    )
-    
+    response_types = Column(JSON, nullable=False, default=lambda: [str])
+    token_endpoint_auth_method = Column(String(50), nullable=False, default="client_secret_basic")
+
     # OAuth2 Optional Fields (Recommended)
     audience = Column(JSON, nullable=True)  # Array of audience URIs
     owner = Column(String(255), nullable=True)  # Owner identifier
     client_metadata = Column(JSON, nullable=True)  # Free-form metadata (renamed from metadata)
     token_endpoint_auth_signing_alg = Column(String(50), nullable=True)
     client_name = Column(String(255), nullable=False)  # Human-readable name
-    redirect_uris = Column(JSON, nullable=True, default=lambda: [])
-    post_logout_redirect_uris = Column(JSON, nullable=True, default=lambda: [])
-    allowed_cors_origins = Column(JSON, nullable=True, default=lambda: [])
+    redirect_uris = Column(JSON, nullable=True, default=lambda: [str])
+    post_logout_redirect_uris = Column(JSON, nullable=True, default=lambda: [str])
+    allowed_cors_origins = Column(JSON, nullable=True, default=lambda: [str])
     skip_consent = Column(Boolean, default=True)  # Usually true for service accounts
-    
+
     # Additional OAuth2 fields
     jwks = Column(JSON, nullable=True)
     jwks_uri = Column(String(500), nullable=True)
     id_token_signed_response_alg = Column(String(50), nullable=True, default="RS256")
-    
+
     # Service Account Management Fields
-    account_type = Column(
-        String(50), 
-        nullable=False, 
-        default=ServiceAccountType.SERVICE_TO_SERVICE.value
-    )
+    account_type = Column(String(50), nullable=False, default=ServiceAccountType.SERVICE_TO_SERVICE.value)
     is_active = Column(Boolean, default=True, nullable=False)
     description = Column(Text, nullable=True)
     last_used_at = Column(DateTime, nullable=True)
     created_by = Column(String(255), nullable=False)  # Who created this service account
-    
+
     # Relationships
     roles = relationship(
         "Role",
         secondary="service_account_roles",
         back_populates="service_accounts",
-        lazy='selectin'
+        lazy="selectin",
     )
-    
+
     scopes = relationship(
         "Scope",
         secondary="service_account_scopes",
         back_populates="service_accounts",
-        lazy='selectin'
+        lazy="selectin",
     )
-    
+
     def __repr__(self):
         return f"<ServiceAccount(client_id='{self.client_id}', name='{self.client_name}')>"
-    
+
     def to_hydra_client(self) -> Dict[str, Any]:
         """Convert to Hydra client format for API calls."""
         scope_string = " ".join(scope.name for scope in self.scopes) if self.scopes else ""
-        
-        client_data = {
+
+        client_data: Dict[str, Any] = {
             "client_id": self.client_id,
             "grant_types": self.grant_types,
             "response_types": self.response_types,
@@ -107,15 +102,17 @@ class ServiceAccount(Base):
             "id_token_signed_response_alg": self.id_token_signed_response_alg,
             "account_type": self.account_type,
         }
-        
+
         # Only include client_secret for confidential clients
-        if self.token_endpoint_auth_method != 'none' and self.client_secret is not None:
+        if self.token_endpoint_auth_method != "none" and self.client_secret is not None:
             client_data["client_secret"] = self.client_secret
-            
+
         return client_data
-    
+
     @classmethod
-    def from_hydra_client(cls, hydra_client: Dict[str, Any], created_by: str, account_type: Optional[str] = None) -> "ServiceAccount":
+    def from_hydra_client(
+        cls, hydra_client: Dict[str, Any], created_by: str, account_type: Optional[str] = None
+    ) -> "ServiceAccount":
         """Create ServiceAccount from Hydra client data."""
         # Note: Scope handling is now done through relationships, not a simple string field
         return cls(
@@ -138,5 +135,5 @@ class ServiceAccount(Base):
             jwks_uri=hydra_client.get("jwks_uri"),
             id_token_signed_response_alg=hydra_client.get("id_token_signed_response_alg", "RS256"),
             account_type=account_type or ServiceAccountType.SERVICE_TO_SERVICE.value,
-            created_by=created_by
+            created_by=created_by,
         )

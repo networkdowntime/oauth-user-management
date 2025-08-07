@@ -54,7 +54,6 @@ def sample_service_account():
         description="A test OAuth client for unit testing",
         grant_types=["client_credentials"],
         response_types=[],
-        scope="read write",
         token_endpoint_auth_method="client_secret_basic",
         audience=["https://api.example.com"],
         owner="test-owner",
@@ -81,7 +80,6 @@ def sample_service_account_with_roles(sample_role):
         description="A test OAuth client with roles for unit testing",
         grant_types=["client_credentials"],
         response_types=[],
-        scope="read write admin",
         token_endpoint_auth_method="client_secret_basic",
         audience=["https://api.example.com"],
         owner="test-owner",
@@ -135,7 +133,6 @@ def multiple_service_accounts(sample_role):
             description=f"Test client {i+1} for unit testing",
             grant_types=["client_credentials"],
             response_types=[],
-            scope="read write",
             token_endpoint_auth_method="client_secret_basic",
             audience=["https://api.example.com"],
             owner="test-owner",
@@ -189,7 +186,6 @@ def service_account_create_data():
         "description": "A new test client",
         "grant_types": ["client_credentials"],
         "response_types": [],
-        "scope": "read write",
         "token_endpoint_auth_method": "client_secret_basic",
         "audience": ["https://api.example.com"],
         "owner": "test-owner",
@@ -207,7 +203,15 @@ def service_account_update_data():
     return {
         "client_name": "Updated Test Client",
         "description": "An updated test client",
-        "scope": "read write admin"
+        "grant_types": ["client_credentials", "authorization_code"],
+        "response_types": ["code"],
+        "token_endpoint_auth_method": "client_secret_post",
+        "audience": ["https://api.example.com", "https://api2.example.com"],
+        "owner": "updated-owner",
+        "client_metadata": {"app_type": "updated"},
+        "redirect_uris": ["https://updated.example.com/callback"],
+        "skip_consent": False,
+        "is_active": True
     }
 
 

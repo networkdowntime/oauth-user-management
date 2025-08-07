@@ -1,42 +1,43 @@
 """Admin service for system-wide operations."""
 
 from typing import List, Optional
-from pathlib import Path
 
-from ..repositories.audit_log import AuditLogRepository
-from ..repositories.user import UserRepository
-from ..repositories.role import RoleRepository
-from ..repositories.service_account import ServiceAccountRepository
-from ..schemas.audit import AuditLogResponse
-from ..schemas.common import SystemStatsResponse
 from ..core.config import settings
 from ..core.logging_config import get_logger
+from ..repositories.audit_log import AuditLogRepository
+from ..repositories.role import RoleRepository
+from ..repositories.service_account import ServiceAccountRepository
+from ..repositories.user import UserRepository
+from ..schemas.audit import AuditLogResponse
+from ..schemas.common import SystemStatsResponse
 
 logger = get_logger(__name__)
 
 
 class AdminService:
     """Service for admin-related operations."""
-    
-    def __init__(self, audit_repo: AuditLogRepository, user_repo: UserRepository, role_repo: RoleRepository, service_account_repo: ServiceAccountRepository):
+
+    def __init__(
+        self,
+        audit_repo: AuditLogRepository,
+        user_repo: UserRepository,
+        role_repo: RoleRepository,
+        service_account_repo: ServiceAccountRepository,
+    ):
         self.audit_repo = audit_repo
         self.user_repo = user_repo
         self.role_repo = role_repo
         self.service_account_repo = service_account_repo
-    
+
     async def get_audit_logs(
         self,
         resource_type: Optional[str] = None,
         resource_id: Optional[str] = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[AuditLogResponse]:
         """Get audit logs with optional filtering."""
-        logs = await self.audit_repo.get_by_resource(
-            resource_type=resource_type,
-            resource_id=resource_id,
-            limit=limit
-        )
-        
+        logs = await self.audit_repo.get_by_resource(resource_type=resource_type, resource_id=resource_id, limit=limit)
+
         return [
             AuditLogResponse(
                 id=str(log.id),
@@ -47,31 +48,27 @@ class AdminService:
                 performed_by=log.performed_by,
                 ip_address=log.ip_address,
                 user_agent=log.user_agent,
-                timestamp=log.timestamp
+                timestamp=log.timestamp,
             )
             for log in logs
         ]
-    
+
     async def get_system_stats(self) -> SystemStatsResponse:
         """Get system statistics."""
-        # Count users (excluding service accounts if they have a different user_type)  
+        # Count users - all User entities are regular users
         users = await self.user_repo.get_all(limit=1000)  # Get all users with a reasonable limit
-        user_count = len([user for user in users if getattr(user, 'user_type', 'user') == "user"])
-        
-        service_accounts = await self.service_account_repo.get_all(limit=1000)  # Get all service_accounts with a reasonable limit
-        # Count service accounts (if they exist as a separate user type)
+        user_count = len(users)
+
+        # Count service accounts from the ServiceAccount table
+        service_accounts = await self.service_account_repo.get_all(limit=1000)
         service_count = len(service_accounts)
-        
+
         # Count roles
         roles = await self.role_repo.get_all(limit=1000)  # Get all roles with a reasonable limit
         role_count = len(roles)
-        
-        return SystemStatsResponse(
-            users=user_count,
-            services=service_count,
-            roles=role_count
-        )
-    
+
+        return SystemStatsResponse(users=user_count, services=service_count, roles=role_count)
+
     async def get_jwt_public_key(self) -> str:
         """Get JWT public key."""
         try:

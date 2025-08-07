@@ -4,11 +4,10 @@ Association table for user-role many-to-many relationship.
 This module defines the association table that links users and roles.
 """
 
-from sqlalchemy import Table, Column, ForeignKey
+from sqlalchemy import Column, ForeignKey, Table
 from sqlalchemy.dialects.postgresql import UUID
 
 from ..core.database import Base
-
 
 # Association table for user-role many-to-many relationship
 user_roles = Table(

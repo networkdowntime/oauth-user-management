@@ -138,6 +138,9 @@ services:
     build:
       context: ./management-ui
       dockerfile: Dockerfile
+      args:
+        REACT_APP_AUTH_BACKEND_URL: http://localhost:8000
+        REACT_APP_HYDRA_PUBLIC_URL: http://localhost:4444
     container_name: management-ui
     ports:
       - "3000:3000"

@@ -2,23 +2,24 @@
 
 from datetime import datetime
 from typing import List, Optional
+
 from pydantic import BaseModel, EmailStr, Field
 
 
 class RoleInUser(BaseModel):
     """Role schema when included in user responses."""
-    
+
     id: str
     name: str
     description: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
 
 
 class UserResponse(BaseModel):
     """User response schema matching frontend interface."""
-    
+
     id: str
     email: EmailStr
     display_name: Optional[str] = None
@@ -30,14 +31,14 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     roles: List[RoleInUser] = []
-    
+
     class Config:
         from_attributes = True
 
 
 class UserCreate(BaseModel):
     """Schema for creating a new user."""
-    
+
     email: EmailStr
     display_name: Optional[str] = None
     password: str = Field(..., min_length=8, description="Password must be at least 8 characters")
@@ -46,7 +47,7 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     """Schema for updating a user."""
-    
+
     email: Optional[EmailStr] = None
     display_name: Optional[str] = None
     password: Optional[str] = Field(None, min_length=8, description="Password must be at least 8 characters")
@@ -57,5 +58,5 @@ class UserUpdate(BaseModel):
 
 class UserPasswordReset(BaseModel):
     """Schema for resetting a user's password."""
-    
+
     new_password: str = Field(..., min_length=8, description="Password must be at least 8 characters")

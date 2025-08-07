@@ -5,24 +5,23 @@ This service handles authentication and authorization for the OAuth2 system.
 It integrates with Ory Hydra and provides user/service/role management.
 """
 
-import structlog
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from .api.v1.auth import router as auth_router
-from .api.v1.users import router as users_router  
-from .api.v1.service_accounts import router as service_accounts_router
-from .api.v1.roles import router as roles_router
 from .api.v1.admin import router as admin_router
+from .api.v1.auth import router as auth_router
+from .api.v1.roles import router as roles_router
 from .api.v1.scopes import router as scopes_router
+from .api.v1.service_accounts import router as service_accounts_router
 from .api.v1.sync import router as sync_router
+from .api.v1.users import router as users_router
 from .core.config import settings
 from .core.database import create_tables, initialize_default_data
 from .core.exceptions import setup_exception_handlers
@@ -34,45 +33,45 @@ from .core.rate_limiting import limiter
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Application lifespan events.
-    
+
     Handles startup and shutdown tasks including database initialization
     and default data creation.
     """
     # Startup
     logger = structlog.get_logger()
     setup_logging()
-    
+
     # Try to initialize database, but don't fail if database is not available
     try:
         await create_tables()
         await initialize_default_data()
         logger.info("Database initialized successfully")
-        
+
         # Run Hydra synchronization on startup
         try:
             from .core.database import AsyncSessionLocal
             from .services.hydra_sync_service import create_hydra_sync_service
-            
+
             async with AsyncSessionLocal() as db:
                 sync_service = create_hydra_sync_service(db)
                 result = await sync_service.sync_all()
-                
+
                 if result.success:
-                    summary = result.to_dict()['summary']
+                    summary = result.to_dict()["summary"]
                     logger.info(f"Hydra sync completed successfully: {summary}")
                 else:
                     logger.warning(f"Hydra sync completed with errors: {result.errors}")
-                    
+
         except Exception as e:
             logger.warning(f"Hydra synchronization failed during startup: {e}")
             logger.warning("Application will continue without Hydra sync")
-        
+
     except Exception as e:
         logger.warning(f"Database initialization failed: {e}")
         logger.warning("Application will start without database connectivity")
-    
+
     yield
-    
+
     # Shutdown
     pass
 
@@ -80,7 +79,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 def create_app() -> FastAPI:
     """
     Create and configure the FastAPI application.
-    
+
     Returns:
         FastAPI: Configured application instance
     """
@@ -123,7 +122,6 @@ def create_app() -> FastAPI:
     app.include_router(scopes_router, prefix="/api/v1", tags=["Scopes"])
     app.include_router(sync_router, prefix="/api/v1", tags=["System"])
     app.include_router(users_router, prefix="/api/v1", tags=["Users"])
-
 
     # Health check endpoint
     @app.get("/health")

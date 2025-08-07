@@ -47,12 +47,35 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
-line-length = 88
+line-length = 120
 target-version = ['py311']
 
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+line_length = 120
+
+[tool.flake8]
+max-line-length = 120
+ignore = [
+    "E203",  # whitespace before ':'
+    "W503",  # line break before binary operator
+    "E501",  # line too long (handled by black)
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".eggs",
+    "*.egg-info",
+    ".venv",
+    "venv",
+    ".tox",
+    ".coverage",
+    ".pytest_cache",
+    "migrations/versions",
+]
 
 [tool.mypy]
 python_version = "3.11"

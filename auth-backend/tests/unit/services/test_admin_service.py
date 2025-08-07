@@ -33,12 +33,18 @@ class TestAdminService:
         return AsyncMock()
 
     @pytest.fixture
-    def admin_service(self, mock_audit_repo, mock_user_repo, mock_role_repo):
+    def mock_service_account_repo(self):
+        """Create a mock ServiceAccountRepository."""
+        return AsyncMock()
+
+    @pytest.fixture
+    def admin_service(self, mock_audit_repo, mock_user_repo, mock_role_repo, mock_service_account_repo):
         """Create an AdminService instance with mocked dependencies."""
         return AdminService(
             audit_repo=mock_audit_repo,
             user_repo=mock_user_repo,
-            role_repo=mock_role_repo
+            role_repo=mock_role_repo,
+            service_account_repo=mock_service_account_repo
         )
 
     @pytest.fixture
@@ -62,7 +68,6 @@ class TestAdminService:
         user = MagicMock()
         user.id = "user123"
         user.email = "test@example.com"
-        user.user_type = "user"
         return user
 
     @pytest.fixture
@@ -71,7 +76,6 @@ class TestAdminService:
         service = MagicMock()
         service.id = "service123"
         service.email = "service@example.com"
-        service.user_type = "service"
         return service
 
     @pytest.fixture
@@ -162,11 +166,17 @@ class TestAdminService:
         assert result[1].id == "log2"
 
     async def test_get_system_stats_mixed_users(self, admin_service, mock_user_repo, mock_role_repo, 
-                                                sample_user, sample_service_user, sample_role):
-        """Test get_system_stats with mixed user types."""
-        # Setup users with different types
-        users = [sample_user, sample_service_user]
+                                                mock_service_account_repo, sample_user, sample_role):
+        """Test get_system_stats with users and service accounts."""
+        # Setup users - all User entities are regular users
+        users = [sample_user]
         mock_user_repo.get_all.return_value = users
+        
+        # Setup service accounts
+        service_account = MagicMock()
+        service_account.id = "service1"
+        service_account.client_id = "test-service-1"
+        mock_service_account_repo.get_all.return_value = [service_account]
         
         # Setup roles
         roles = [sample_role]
@@ -175,25 +185,26 @@ class TestAdminService:
         result = await admin_service.get_system_stats()
         
         mock_user_repo.get_all.assert_called_once_with(limit=1000)
+        mock_service_account_repo.get_all.assert_called_once_with(limit=1000)
         mock_role_repo.get_all.assert_called_once_with(limit=1000)
         
         assert isinstance(result, SystemStatsResponse)
-        assert result.users == 1  # Only regular users
-        assert result.services == 1  # Only service users
+        assert result.users == 1  # One regular user
+        assert result.services == 1  # One service account
         assert result.roles == 1
 
-    async def test_get_system_stats_only_regular_users(self, admin_service, mock_user_repo, mock_role_repo):
+    async def test_get_system_stats_only_regular_users(self, admin_service, mock_user_repo, 
+                                                       mock_role_repo, mock_service_account_repo):
         """Test get_system_stats with only regular users."""
-        # Setup users without user_type attribute (defaults to 'user')
+        # Setup users - all User entities are regular users
         user1 = MagicMock()
         user1.id = "user1"
-        del user1.user_type  # Remove attribute to test default behavior
         
         user2 = MagicMock()
         user2.id = "user2"
-        user2.user_type = "user"
         
         mock_user_repo.get_all.return_value = [user1, user2]
+        mock_service_account_repo.get_all.return_value = []  # No service accounts
         mock_role_repo.get_all.return_value = []
         
         result = await admin_service.get_system_stats()
@@ -202,9 +213,10 @@ class TestAdminService:
         assert result.services == 0
         assert result.roles == 0
 
-    async def test_get_system_stats_empty_system(self, admin_service, mock_user_repo, mock_role_repo):
+    async def test_get_system_stats_empty_system(self, admin_service, mock_user_repo, mock_role_repo, mock_service_account_repo):
         """Test get_system_stats with empty system."""
         mock_user_repo.get_all.return_value = []
+        mock_service_account_repo.get_all.return_value = []
         mock_role_repo.get_all.return_value = []
         
         result = await admin_service.get_system_stats()
@@ -285,30 +297,17 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1234567890...
         assert response.user_agent == "Test Agent"
         assert response.timestamp == datetime(2023, 6, 15, 10, 30, 0)
 
-    async def test_get_system_stats_handles_user_type_edge_cases(self, admin_service, mock_user_repo, mock_role_repo):
-        """Test get_system_stats handles various user_type edge cases."""
-        # User with None user_type
-        user1 = MagicMock()
-        user1.user_type = None
-        
-        # User with empty string user_type
-        user2 = MagicMock()
-        user2.user_type = ""
-        
-        # User with unexpected user_type
-        user3 = MagicMock()
-        user3.user_type = "admin"
-        
-        # Normal service user
-        user4 = MagicMock()
-        user4.user_type = "service"
-        
-        mock_user_repo.get_all.return_value = [user1, user2, user3, user4]
+    async def test_get_system_stats_handles_empty_collections(self, admin_service, mock_user_repo,
+                                                           mock_role_repo, mock_service_account_repo):
+        """Test get_system_stats handles empty collections."""
+        # Empty collections
+        mock_user_repo.get_all.return_value = []
+        mock_service_account_repo.get_all.return_value = []
         mock_role_repo.get_all.return_value = []
         
         result = await admin_service.get_system_stats()
         
-        # Only the service user should count as service
-        assert result.services == 1
-        # Others should not count as regular users since they don't equal "user"
+        # All counts should be zero for empty collections
         assert result.users == 0
+        assert result.services == 0
+        assert result.roles == 0
